@@ -6,5 +6,5 @@ function re {
 	adb install -r $(find . -name *.apk)
 }
 function openhere {
-	android-studio ../Rosetus
+	android-studio ../Rosetus &
 }
