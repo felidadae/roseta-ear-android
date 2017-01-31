@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="noteUnactive">#FF4081</color>
-    <color name="noteActive">#FF4081</color>
+    <color name="noteActive">#008000</color>
 </resources>
