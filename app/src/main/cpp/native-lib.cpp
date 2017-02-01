@@ -73,16 +73,19 @@ void CreateEngine() {
 	LOGI("engine started");
 }
 
+static int it=0;
 static int16_t* buf_ptr=new int16_t[buffer_size];
 extern "C" void BqPlayerCallback(SLAndroidSimpleBufferQueueItf queueItf,
 		void *data) 
 {
-	for (int i = 0; i < buffer_size; ++i) {
-		buf_ptr[i] = sin(6.0f*((float)i)/float(buffer_size));
+	float deltat_unit = 1.0f/44100.0f;
+	for (int i = 0; i < buffer_size; ++i, ++it) {
+		buf_ptr[i] = (int16_t) ( 1000 * sin(6.14f * 1000 * deltat_unit * it));
 	}
 	SLresult result = (*queueItf)->Enqueue(bq_player_buffer_queue,
 		buf_ptr, buffer_size);
 	assert(SL_RESULT_SUCCESS == result);
+//	LOGI("Buffer calculated");
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -130,12 +133,13 @@ Java_com_example_felidadae_rosetus_MainActivity_start(
 				&BqPlayerCallback, NULL);
 	assert(SL_RESULT_SUCCESS == result);
 
-	/* for (int i = 0; i < N_BUFFERS - 1; ++i) { */
-	/* 	BqPlayerCallback(bq_player_buffer_queue, NULL); */
-	/* } */
+	for (int i = 0; i < 1; ++i) {
+	 	BqPlayerCallback(bq_player_buffer_queue, NULL);
+	}
 
 	result = (*bq_player_play)->SetPlayState(bq_player_play,
 			SL_PLAYSTATE_PLAYING);
 	assert(SL_RESULT_SUCCESS == result);
+	LOGI("Started all succesfully");
 }
 
