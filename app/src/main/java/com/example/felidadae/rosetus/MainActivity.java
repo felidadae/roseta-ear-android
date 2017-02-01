@@ -8,6 +8,7 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
     public native String stringFromJNI();
+	public native void start(int sample_rate, int buf_size);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -15,6 +16,7 @@ public class MainActivity extends AppCompatActivity {
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN |
 				WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
+		start(441, 256);
     }
 
     @Override
