@@ -1,3 +1,4 @@
+
 //c++ --> java
 #include <jni.h>
 
@@ -19,6 +20,13 @@
 
 //different
 #include <string>
+#include <climits>
+
+//felidadae rosetus synth
+#define __IF_ANDROID__
+#include "FelidadaeSineSynth/Synth.h"
+
+
 
 extern "C"
 jstring
@@ -47,7 +55,7 @@ static SLBufferQueueItf buffer_queue_itf;
 
 //params currently static should be possible to set
 static unsigned buffer_size = 2048;
-static unsigned N_BUFFERS = 1;
+static unsigned N_BUFFERS = 2;
 static unsigned sample_rate = 44100;
 
 /*
@@ -73,19 +81,32 @@ void CreateEngine() {
 	LOGI("engine started");
 }
 
-static int it=0;
-static int16_t* buf_ptr=new int16_t[buffer_size];
+static long int it=0;
+Tuner tuner(5,5);
+Synth synth(tuner);
+static int ibuf = 0;
+static int16_t* buf_ptr   =new int16_t[buffer_size*2];
+static int16_t* buf_newest=new int16_t[buffer_size];
 extern "C" void BqPlayerCallback(SLAndroidSimpleBufferQueueItf queueItf,
 		void *data) 
 {
 	float deltat_unit = 1.0f/44100.0f;
 	for (int i = 0; i < buffer_size; ++i, ++it) {
-		buf_ptr[i] = (int16_t) ( 1000 * sin(6.14f * 1000 * deltat_unit * it));
+		float tmp = sin(6.14f * 700 * deltat_unit * it);
+		buf_newest[i] = (int16_t) (tmp * USHRT_MAX * 0.1); //casting float to int16
 	}
+	for (int i = 0; i < buffer_size; ++i) {
+		buf_ptr[i] = buf_ptr[i+buffer_size];
+	}
+	for (int i = 0; i < buffer_size; ++i) {
+		buf_ptr[i+buffer_size] = buf_newest[i];
+	}
+	
 	SLresult result = (*queueItf)->Enqueue(bq_player_buffer_queue,
-		buf_ptr, buffer_size);
+		buf_ptr, buffer_size*2);
 	assert(SL_RESULT_SUCCESS == result);
-//	LOGI("Buffer calculated");
+    //	LOGI("Buffer calculated");
+	ibuf = 1;
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -115,7 +136,7 @@ Java_com_example_felidadae_rosetus_MainActivity_start(
 	SLresult result;
 
 	result = (*engineEngine)->CreateAudioPlayer(engineEngine, &bqPlayerObject,
-			&audio_src, &audio_sink, 2, ids, req);
+			&audio_src, &audio_sink, 1, ids, req);
 	assert(SL_RESULT_SUCCESS == result);
 
 	result = (*bqPlayerObject)->Realize(bqPlayerObject, SL_BOOLEAN_FALSE);
