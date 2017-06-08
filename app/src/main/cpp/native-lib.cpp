@@ -27,6 +27,9 @@
 #include "FelidadaeSineSynth/Synth.h"
 
 
+Tuner tuner(5,5);
+Synth synth(tuner);
+
 
 extern "C"
 jstring
@@ -38,6 +41,41 @@ Java_com_example_felidadae_rosetus_MainActivity_stringFromJNI(
     return env->NewStringUTF(hello.c_str());
 }
 
+extern "C"
+void
+Java_com_example_felidadae_rosetus_MainActivity_attackNote(
+        JNIEnv *env,
+        jobject /* this */, jint positionX, jint positionY) 
+{
+	synth.attackNote(positionX,positionY);
+}
+
+extern "C"
+void
+Java_com_example_felidadae_rosetus_MainActivity_releaseNote(
+        JNIEnv *env,
+        jobject /* this */, jint positionX, jint positionY) 
+{
+	synth.releaseNote(positionX, positionY);
+}
+
+extern "C"
+void
+Java_com_example_felidadae_rosetus_MainActivity_bendNote(
+        JNIEnv *env,
+        jobject /* this */, jint positionX, jint positionY, jfloat bendingIndexX, jfloat bendingIndexY) 
+{
+	synth.bendNote(positionX, positionY, bendingIndexX, bendingIndexY);
+}
+
+extern "C"
+void
+Java_com_example_felidadae_rosetus_MainActivity_unbendNote(
+        JNIEnv *env,
+        jobject /* this */, jint positionX, jint positionY) 
+{
+	synth.unbendNote(positionX, positionY);
+}
 
 
 // engine interfaces
@@ -54,7 +92,7 @@ static SLAndroidSimpleBufferQueueItf bq_player_buffer_queue;
 static SLBufferQueueItf buffer_queue_itf;
 
 //params currently static should be possible to set
-static unsigned buffer_size = 2048;
+static unsigned buffer_size = 512;
 static unsigned N_BUFFERS = 2;
 static unsigned sample_rate = 44100;
 
@@ -82,23 +120,39 @@ void CreateEngine() {
 }
 
 static long int it=0;
-Tuner tuner(5,5);
-Synth synth(tuner);
 static int ibuf = 0;
 static int16_t* buf_ptr   =new int16_t[buffer_size*2];
 static int16_t* buf_newest=new int16_t[buffer_size];
+static float* buf_newest_float=new float [buffer_size];
 extern "C" void BqPlayerCallback(SLAndroidSimpleBufferQueueItf queueItf,
 		void *data) 
 {
-	float deltat_unit = 1.0f/44100.0f;
+	FelidadaeAudio::AudioInOutBuffers<float_type> audio;
+	audio.channelLength_ = buffer_size;
+	audio.numOfChannels_ = 1;
+	audio.out_.data_ = buf_newest_float;
+	synth.process(audio);
+
+	/* cast from float to int */
 	for (int i = 0; i < buffer_size; ++i, ++it) {
-		float tmp = sin(6.14f * 700 * deltat_unit * it);
-		buf_newest[i] = (int16_t) (tmp * USHRT_MAX * 0.1); //casting float to int16
+		/* Here sound is synthesized */
+		buf_newest[i] = (int16_t) (buf_newest_float[i] * USHRT_MAX * 0.1); //casting float to int16
 	}
+
+	/* float deltat_unit = 1.0f/44100.0f; */
+	/* for (int i = 0; i < buffer_size; ++i, ++it) { */
+	/* 	/1* Here sound is synthesized *1/ */
+	/* 	float tmp = sin(6.14f * 700 * deltat_unit * it); */
+	/* 	buf_newest[i] = (int16_t) (tmp * USHRT_MAX * 0.1); //casting float to int16 */
+	/* } */
+
 	for (int i = 0; i < buffer_size; ++i) {
+		/* Here we copy from right half to left half of buffor */
 		buf_ptr[i] = buf_ptr[i+buffer_size];
 	}
+
 	for (int i = 0; i < buffer_size; ++i) {
+		/* Here we copy from the newest to right half of buffor */
 		buf_ptr[i+buffer_size] = buf_newest[i];
 	}
 	

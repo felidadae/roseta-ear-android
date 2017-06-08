@@ -1,35 +1,58 @@
 package com.example.felidadae.rosetus;
 
-import android.animation.FloatEvaluator;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
 
-import java.util.concurrent.Callable;
-
 
 public class FretboardLayout extends RelativeLayout {
+    public ISynth synthDelegate;
     public FretboardLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
-    private void createNote(int x, int y) {
-        View note = new NoteView(this.getContext());
-//        note.setBackgroundColor(getResources().getColor(R.color.noteUnactive));
-        note.setOnClickListener(new View.OnClickListener() {
+    private void createNote(int x, int y, int ix, int iy) {
+        NoteView note = new NoteView(this.getContext());
+
+		/* Added x,y attributes to note*/
+		note.x__ = ix;
+		note.y__ = iy;
+
+        //note.setBackgroundColor(getResources().getColor(R.color.noteUnactive));
+        note.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                fretboard_onclick(v);
-            }
-        });
+            public boolean onTouch(View view, MotionEvent event) {
+                if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                    Log.d("TouchTest", "Touch down");
+                    fretboard_onclick(view);
+                }
+                else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+                    Log.d("TouchTest", "Touch up");
+                    fretboard_onclick(view);
+                }
+                else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+					int newX = Math.round(event.getX());
+					int newY = Math.round(event.getY());
+
+					int deltaX = view.getLeft() - newX;
+					int deltaY = view.getTop() - newY;
+
+                    Log.d("TouchTest", "Touch up");
+                    fretboard_onmove(view, (-1) * deltaX, (-1) * deltaY);
+                }
+                return true;
+            };}
+        );
         RelativeLayout.LayoutParams params =
             new RelativeLayout.LayoutParams(noteSize, noteSize);
         params.leftMargin = x;
         params.topMargin  = y;
         this.addView(note, params);
     }
+
     public void prepareNotes() {
         int width = this.getWidth();
         int height = this.getHeight();
@@ -55,19 +78,33 @@ public class FretboardLayout extends RelativeLayout {
         }
         Log.i("FretboardLayout", "(xN, yN) <- (" + xN + ", " + yN + ")");
         Log.i("FretboardLayout", "(width, height) <- (" + width + ", " + height + ")");
-//        createNote(margin,0);
-//        createNote(width-margin,0);
         for (int ix = 0; ix < xN; ix++){
             for (int iy = 0; iy < yN; iy++) {
                 int x = (int) (margin + ix * (noteSize + realNoteSpaceX));
                 int y = (int) (margin + iy * (noteSize + realNoteSpaceY));
-                createNote(x, y);
+                createNote(x, y, ix, yN-iy);
             }
         }
     }
-
     public void fretboard_onclick(View view) {
-        ((NoteView) view).animate__alpha();
+		NoteView noteView = ((NoteView) view);
+        if (!noteView.ifActive) {
+            synthDelegate.attackNote(noteView.x__, noteView.y__);
+            noteView.animate_alpha();
+            noteView.ifActive = true;
+        }
+        else {
+            synthDelegate.releaseNote(noteView.x__, noteView.y__);
+            noteView.animate_alpha();
+            noteView.ifActive = false;
+        }
+    }
+
+    public void fretboard_onmove(View view, float deltaX, float deltaY) {
+        NoteView noteView = ((NoteView) view);
+        if (noteView.ifActive) {
+            synthDelegate.bendNote(noteView.x__, noteView.y__, deltaX, deltaY);
+        }
     }
 
     @Override
