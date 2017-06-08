@@ -14,6 +14,14 @@ public class FretboardLayout extends RelativeLayout {
         super(context, attrs);
     }
 
+	public void logNote(View view, String event_type) {
+		NoteView noteView = ((NoteView) view);
+		Log.d(
+			"NoteTouchEvent", 
+			String.format("%s of note (%d, %d)", 
+				event_type, noteView.x__, noteView.y__));
+	}
+
     private void createNote(int x, int y, int ix, int iy) {
         NoteView note = new NoteView(this.getContext());
 
@@ -26,22 +34,24 @@ public class FretboardLayout extends RelativeLayout {
             @Override
             public boolean onTouch(View view, MotionEvent event) {
                 if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-                    Log.d("TouchTest", "Touch down");
                     fretboard_onclick(view);
+					logNote(view, "EVENT_DOWN");
                 }
                 else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-                    Log.d("TouchTest", "Touch up");
                     fretboard_onclick(view);
+					logNote(view, "EVENT_UP");
                 }
                 else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 					int newX = Math.round(event.getX());
 					int newY = Math.round(event.getY());
 
-					int deltaX = view.getLeft() - newX;
-					int deltaY = view.getTop() - newY;
+					int deltaX = newX;
+					int deltaY = newY;
+					deltaX = deltaX;
+					deltaY = deltaY;
 
-                    Log.d("TouchTest", "Touch up");
-                    fretboard_onmove(view, (-1) * deltaX, (-1) * deltaY);
+                    fretboard_onmove(view, deltaX, deltaY);
+					logNote(view, String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY ));
                 }
                 return true;
             };}
@@ -80,9 +90,10 @@ public class FretboardLayout extends RelativeLayout {
         Log.i("FretboardLayout", "(width, height) <- (" + width + ", " + height + ")");
         for (int ix = 0; ix < xN; ix++){
             for (int iy = 0; iy < yN; iy++) {
-                int x = (int) (margin + ix * (noteSize + realNoteSpaceX));
-                int y = (int) (margin + iy * (noteSize + realNoteSpaceY));
-                createNote(x, y, ix, yN-iy);
+                int left = (int) (margin + ix * (noteSize + realNoteSpaceX));
+                int top = (int) (margin + iy * (noteSize + realNoteSpaceY));
+                createNote(left, top, ix, yN-1-iy);
+				Log.i("FretboardLayout", String.format("create note with indexes: (x: %d, y: %d) with coordinates (left: %d, top: %d)", ix, yN-1-iy, left, top));
             }
         }
     }
@@ -97,6 +108,7 @@ public class FretboardLayout extends RelativeLayout {
             synthDelegate.releaseNote(noteView.x__, noteView.y__);
             noteView.animate_alpha();
             noteView.ifActive = false;
+			synthDelegate.unbendNote(noteView.x__, noteView.y__);
         }
     }
 
