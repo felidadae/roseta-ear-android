@@ -34,24 +34,15 @@ public class FretboardLayout extends RelativeLayout {
             @Override
             public boolean onTouch(View view, MotionEvent event) {
                 if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-                    fretboard_onclick(view);
+                    fretboard_onclick(view, event);
 					logNote(view, "EVENT_DOWN");
                 }
                 else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-                    fretboard_onclick(view);
+                    fretboard_onclick(view, event);
 					logNote(view, "EVENT_UP");
                 }
                 else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-					int newX = Math.round(event.getX());
-					int newY = Math.round(event.getY());
-
-					int deltaX = newX;
-					int deltaY = newY;
-					deltaX = deltaX;
-					deltaY = deltaY;
-
-                    fretboard_onmove(view, deltaX, deltaY);
-					logNote(view, String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY ));
+                    fretboard_onmove(view, event);
                 }
                 return true;
             };}
@@ -74,7 +65,7 @@ public class FretboardLayout extends RelativeLayout {
         minNoteSpace = (int) (S * (int) getResources().getDimension(R.dimen.minNoteSpace));
         margin = (int) (S * (int) getResources().getDimension(R.dimen.fretboardMargin));
 
-        xN = (int) ((width - 2 * margin + minNoteSpace) / (noteSize + minNoteSpace));
+        xN = (int) ((width  - 2 * margin + minNoteSpace) / (noteSize + minNoteSpace));
         yN = (int) ((height - 2 * margin + minNoteSpace) / (noteSize + minNoteSpace));
         if (xN == 1) {
             realNoteSpaceX = 0;
@@ -97,12 +88,14 @@ public class FretboardLayout extends RelativeLayout {
             }
         }
     }
-    public void fretboard_onclick(View view) {
+    public void fretboard_onclick(View view, MotionEvent event) {
 		NoteView noteView = ((NoteView) view);
         if (!noteView.ifActive) {
             synthDelegate.attackNote(noteView.x__, noteView.y__);
             noteView.animate_alpha();
             noteView.ifActive = true;
+			noteView.initial_move_x = (int) event.getX();
+			noteView.initial_move_y = (int) event.getY();
         }
         else {
             synthDelegate.releaseNote(noteView.x__, noteView.y__);
@@ -112,11 +105,18 @@ public class FretboardLayout extends RelativeLayout {
         }
     }
 
-    public void fretboard_onmove(View view, float deltaX, float deltaY) {
+    public void fretboard_onmove(View view, MotionEvent event ) {
         NoteView noteView = ((NoteView) view);
+
+		int newX = Math.round(event.getX());
+		int newY = Math.round(event.getY());
+		int deltaX = (-1) * (noteView.initial_move_x - newX) /3;
+		int deltaY = (-1) * (noteView.initial_move_y - newY) /3;
+
         if (noteView.ifActive) {
             synthDelegate.bendNote(noteView.x__, noteView.y__, deltaX, deltaY);
         }
+		logNote(view, String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
     }
 
     @Override

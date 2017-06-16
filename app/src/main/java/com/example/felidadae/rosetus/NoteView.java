@@ -12,6 +12,7 @@ import android.view.View;
 public class NoteView extends View {
 	public int x__,y__;
     public boolean ifActive;
+	public int initial_move_x, initial_move_y;
     public float alpha_active, alhpa_inactive;
 
     public NoteView(Context context) {
