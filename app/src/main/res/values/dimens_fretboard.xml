@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="noteRadius">55dp</dimen>
-    <dimen name="minNoteSpace">23dp</dimen>
-    <dimen name="fretboardMargin">55dp</dimen>
+    <dimen name="noteRadius">45dp</dimen>
+    <dimen name="minNoteSpace">15dp</dimen>
+    <dimen name="fretboardMargin">15dp</dimen>
 </resources>

@@ -25,17 +25,16 @@
 //felidadae rosetus synth
 #define __IF_ANDROID__
 #include "FelidadaeSineSynth/Synth.h"
+#include "FelidadaeSineSynth/Tuner.h"
 
 
-Tuner tuner(5,5);
+ITuner* tuner = new SimpleTuner(5);
 Synth synth(tuner);
 
 
 extern "C"
 jstring
-Java_com_example_felidadae_rosetus_MainActivity_stringFromJNI(
-        JNIEnv *env,
-        jobject /* this */) 
+Java_com_example_felidadae_rosetus_MainActivity_stringFromJNI( JNIEnv *env, jobject /* this */) 
 {
     std::string hello = "Hello from C++; Dupa pana Janka";
     return env->NewStringUTF(hello.c_str());
@@ -92,7 +91,7 @@ static SLAndroidSimpleBufferQueueItf bq_player_buffer_queue;
 static SLBufferQueueItf buffer_queue_itf;
 
 //params currently static should be possible to set
-static unsigned buffer_size = 512;
+static unsigned buffer_size = 2048;
 static unsigned N_BUFFERS = 2;
 static unsigned sample_rate = 44100;
 
@@ -107,12 +106,10 @@ void CreateEngine() {
 	result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
 	assert(SL_RESULT_SUCCESS == result);
 
-	result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE,
-			&engineEngine);
+	result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineEngine);
 	assert(SL_RESULT_SUCCESS == result);
 
-	result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject,
-			0, NULL, NULL);
+	result = (*engineEngine)->CreateOutputMix(engineEngine, &outputMixObject, 0, NULL, NULL);
 	assert(SL_RESULT_SUCCESS == result);
 	result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
 	assert(SL_RESULT_SUCCESS == result);
@@ -138,13 +135,6 @@ extern "C" void BqPlayerCallback(SLAndroidSimpleBufferQueueItf queueItf,
 		/* Here sound is synthesized */
 		buf_newest[i] = (int16_t) (buf_newest_float[i] * USHRT_MAX * 0.1); //casting float to int16
 	}
-
-	/* float deltat_unit = 1.0f/44100.0f; */
-	/* for (int i = 0; i < buffer_size; ++i, ++it) { */
-	/* 	/1* Here sound is synthesized *1/ */
-	/* 	float tmp = sin(6.14f * 700 * deltat_unit * it); */
-	/* 	buf_newest[i] = (int16_t) (tmp * USHRT_MAX * 0.1); //casting float to int16 */
-	/* } */
 
 	for (int i = 0; i < buffer_size; ++i) {
 		/* Here we copy from right half to left half of buffor */
@@ -172,8 +162,7 @@ Java_com_example_felidadae_rosetus_MainActivity_start(
 	//create engine and output mix
 	CreateEngine();
 
-	SLDataLocator_AndroidSimpleBufferQueue loc_bufq =
-		{SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, N_BUFFERS};
+	SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, N_BUFFERS};
 	SLDataFormat_PCM format_pcm = {
 		SL_DATAFORMAT_PCM, 1, (SLuint32) 44100*1000,
 		SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16,
@@ -181,40 +170,33 @@ Java_com_example_felidadae_rosetus_MainActivity_start(
 	};
 	SLDataSource audio_src = {&loc_bufq, &format_pcm};
 
-	SLDataLocator_OutputMix loc_outmix = {SL_DATALOCATOR_OUTPUTMIX,
-		outputMixObject};
+	SLDataLocator_OutputMix loc_outmix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
 	SLDataSink audio_sink = {&loc_outmix, NULL};
 
 	const SLInterfaceID ids[2] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME};
 	const SLboolean req[2] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 	SLresult result;
 
-	result = (*engineEngine)->CreateAudioPlayer(engineEngine, &bqPlayerObject,
-			&audio_src, &audio_sink, 1, ids, req);
+	result = (*engineEngine)->CreateAudioPlayer(engineEngine, &bqPlayerObject, &audio_src, &audio_sink, 1, ids, req);
 	assert(SL_RESULT_SUCCESS == result);
 
 	result = (*bqPlayerObject)->Realize(bqPlayerObject, SL_BOOLEAN_FALSE);
 	assert(SL_RESULT_SUCCESS == result);
 
-	result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_PLAY,
-			&bq_player_play);
+	result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_PLAY, &bq_player_play);
 	assert(SL_RESULT_SUCCESS == result);
 
-	result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_BUFFERQUEUE,
-			&bq_player_buffer_queue);
+	result = (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_BUFFERQUEUE, &bq_player_buffer_queue);
 	assert(SL_RESULT_SUCCESS == result);
 
-	result = (*bq_player_buffer_queue)->RegisterCallback(bq_player_buffer_queue,
-				&BqPlayerCallback, NULL);
+	result = (*bq_player_buffer_queue)->RegisterCallback(bq_player_buffer_queue, &BqPlayerCallback, NULL);
 	assert(SL_RESULT_SUCCESS == result);
 
-	for (int i = 0; i < 1; ++i) {
+	for (int i = 0; i < 1; ++i)
 	 	BqPlayerCallback(bq_player_buffer_queue, NULL);
-	}
 
 	result = (*bq_player_play)->SetPlayState(bq_player_play,
 			SL_PLAYSTATE_PLAYING);
 	assert(SL_RESULT_SUCCESS == result);
 	LOGI("Started all succesfully");
 }
-

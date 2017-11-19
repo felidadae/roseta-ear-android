@@ -1,5 +1,6 @@
 package com.example.felidadae.rosetus;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -84,7 +85,12 @@ public class FretboardLayout extends RelativeLayout {
                 int left = (int) (margin + ix * (noteSize + realNoteSpaceX));
                 int top = (int) (margin + iy * (noteSize + realNoteSpaceY));
                 createNote(left, top, ix, yN-1-iy);
-				Log.i("FretboardLayout", String.format("create note with indexes: (x: %d, y: %d) with coordinates (left: %d, top: %d)", ix, yN-1-iy, left, top));
+				Log.i(
+					"FretboardLayout", 
+					String.format(
+						"create note with indexes: (x: %d, y: %d)" +
+						"with coordinates (left: %d, top: %d)", 
+						ix, yN-1-iy, left, top));
             }
         }
     }
@@ -110,11 +116,12 @@ public class FretboardLayout extends RelativeLayout {
 
 		int newX = Math.round(event.getX());
 		int newY = Math.round(event.getY());
-		int deltaX = (-1) * (noteView.initial_move_x - newX) /3;
+		int deltaX = (-1) * (noteView.initial_move_x - newX) /7;
 		int deltaY = (-1) * (noteView.initial_move_y - newY) /3;
 
+		int lying_deltaX = deltaX - 10*deltaY;
         if (noteView.ifActive) {
-            synthDelegate.bendNote(noteView.x__, noteView.y__, deltaX, deltaY);
+            synthDelegate.bendNote(noteView.x__, noteView.y__, deltaX, 0);
         }
 		logNote(view, String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
     }

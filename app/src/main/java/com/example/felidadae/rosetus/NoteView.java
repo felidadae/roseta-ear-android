@@ -18,17 +18,12 @@ public class NoteView extends View {
     public NoteView(Context context) {
         super(context);
         setAlpha(0.0f);
-
         this.alpha_active  = 1.0f;
-        this.alhpa_inactive= 0.5f;
+        this.alhpa_inactive= 0.4f;
         Log.i("NoteView", "(alpha_active, alpha_inactive) <- (" + alpha_active + ", " + alhpa_inactive + ")");
-
-        ObjectAnimator anim = ObjectAnimator.ofFloat(this,"alpha", alhpa_inactive);
-        anim.setDuration(1000);
-        anim.start();
         initPaint();
         ifActive = false;
-        this.setAlpha(0.5f);
+        this.setAlpha(0.4f);
     }
     public NoteView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -54,9 +49,8 @@ public class NoteView extends View {
     void animate_alpha(){
         if (!ifActive) {
             ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", alpha_active);
-            anim.setDuration(900);
+            anim.setDuration(500);
             anim.start();
-//            Log.i(String.format("animate from to %f --> %f", this.getAlpha(), this.alpha_active));
         }
         else {
             ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", this.alhpa_inactive);

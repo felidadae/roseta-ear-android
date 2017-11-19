@@ -1,9 +1,5 @@
 package com.example.felidadae.rosetus;
 
-/**
- * Created by felidadae on 26.05.17.
- */
-
 public interface ISynth {
     public void start(int sample_rate, int buf_size);
 
