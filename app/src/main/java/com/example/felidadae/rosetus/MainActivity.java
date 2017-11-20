@@ -26,10 +26,16 @@ public class MainActivity extends AppCompatActivity implements ISynth {
         fretboardLayout.synthDelegate = (ISynth) this;
 
 		start(441, 256);
+
     }
 
     @Override
     protected void onResume() {
         super.onResume();
     }
+
+    @Override
+	protected void onStop() {
+		super.onStop();
+	}
 }

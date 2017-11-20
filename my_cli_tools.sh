@@ -4,7 +4,9 @@ function re {
 	./gradlew installDebug
 	# sudo apt-get install adb
 	adb install -r $(find . -name '*.apk')
+	adb logcat -c
+	adb logcat -s LooperEvent
 }
-function openhere {
-	android-studio ../Rosetus &
+function logs {
+	;
 }

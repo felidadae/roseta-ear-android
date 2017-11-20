@@ -1,5 +1,6 @@
 package com.example.felidadae.rosetus;
 
+import java.util.*;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.util.AttributeSet;
@@ -7,6 +8,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class FretboardLayout extends RelativeLayout {
@@ -21,6 +23,9 @@ public class FretboardLayout extends RelativeLayout {
 			"NoteTouchEvent", 
 			String.format("%s of note (%d, %d)", 
 				event_type, noteView.x__, noteView.y__));
+	}
+	public void logLooper() {
+		Log.d("LooperEvent", String.format("State of looper %b (%s)", isLooperOn, looper.toString()));
 	}
 
     private void createNote(int x, int y, int ix, int iy) {
@@ -94,9 +99,49 @@ public class FretboardLayout extends RelativeLayout {
             }
         }
     }
+
     public void fretboard_onclick(View view, MotionEvent event) {
 		NoteView noteView = ((NoteView) view);
+	
+		// Looper
+		if (noteView.x__ == xLooper && noteView.y__ == yLooper && 
+				event.getAction() == android.view.MotionEvent.ACTION_DOWN) 
+		{
+			if (!this.isLooperOn && this.isLooperPlaybackOn.get()) { 
+				this.isLooperPlaybackOn.set(false); 
+				return;
+			}
+			if (this.isLooperOn) { looper.add(-1, -1, -1); } //add break after last note and clicking looper button 
+			boolean isLooperOn_new = !this.isLooperOn ? true : false;
+			boolean isFromOnToOffChange = this.isLooperOn && !isLooperOn_new;
+			this.isLooperOn = isLooperOn_new;
+			logLooper();
+			if (isFromOnToOffChange) {
+				isLooperPlaybackOn.set(true);
+				new Thread(new Runnable() {
+					public void run() {
+						while (isLooperPlaybackOn.get()) {
+							for (LooperMemoryItem memoryItem: looper.memory) {
+								try { Thread.sleep(memoryItem.time_from_previous_event); } 
+								catch (InterruptedException e) {;}
+								if (memoryItem.event_type == 0) { 
+									synthDelegate.attackNote(memoryItem.x, memoryItem.y); 
+								}
+								else if (memoryItem.event_type == 1) { 
+									synthDelegate.releaseNote(memoryItem.x, memoryItem.y); 
+								}
+							}
+						}
+						looper.memory.clear();
+					}
+				}).start();
+			} 
+			return;
+		}
+		if (noteView.x__ == xLooper && noteView.y__ == yLooper) { return; }
+
         if (!noteView.ifActive) {
+			if (this.isLooperOn) { looper.add(noteView.x__, noteView.y__, 0); }
             synthDelegate.attackNote(noteView.x__, noteView.y__);
             noteView.animate_alpha();
             noteView.ifActive = true;
@@ -104,6 +149,7 @@ public class FretboardLayout extends RelativeLayout {
 			noteView.initial_move_y = (int) event.getY();
         }
         else {
+			if (this.isLooperOn) { looper.add(noteView.x__, noteView.y__, 1); }
             synthDelegate.releaseNote(noteView.x__, noteView.y__);
             noteView.animate_alpha();
             noteView.ifActive = false;
@@ -113,6 +159,7 @@ public class FretboardLayout extends RelativeLayout {
 
     public void fretboard_onmove(View view, MotionEvent event ) {
         NoteView noteView = ((NoteView) view);
+		if (noteView.x__ == xLooper && noteView.y__ == yLooper) { return; }
 
 		int newX = Math.round(event.getX());
 		int newY = Math.round(event.getY());
@@ -138,4 +185,52 @@ public class FretboardLayout extends RelativeLayout {
     private int margin;
     private int xN, yN;
     private int realNoteSpaceX, realNoteSpaceY;
+		
+	/* looper */
+	private boolean isLooperOn = false;
+	private AtomicBoolean isLooperPlaybackOn = new AtomicBoolean(false);
+	class LooperMemoryItem {
+		public int x,y;
+		public long time_event;
+		public long time_from_previous_event;
+		public int event_type; //enum 0-start 1-stop -1-break
+
+		@Override
+		public String toString() { 
+			String result = String.format("(x=%d, y=%d, event_type=%d) ", x, y, event_type);
+			return result;
+		} 
+	}
+	class Looper {
+		public List<LooperMemoryItem> memory = new ArrayList<LooperMemoryItem>();
+		void add(int x, int y, int event_type) {
+			LooperMemoryItem item = new LooperMemoryItem();
+			item.x = x;
+			item.y = y;
+			item.event_type = event_type;
+			item.time_event = System.currentTimeMillis();
+			if (memory.size() == 0) {
+				item.time_from_previous_event = 0;
+			}
+			else {
+				LooperMemoryItem last = memory.get(memory.size() - 1);
+				item.time_from_previous_event = item.time_event - last.time_event;
+			}
+			memory.add(item);
+		}
+
+		@Override
+		public String toString() { 
+			String result = new String("");
+			for (LooperMemoryItem item: memory) {
+				result += item.toString();
+			}
+			return result;
+		} 
+
+	}
+	private int xLooper=0, yLooper=8;
+	private int xOverdubeLooper=0, yOverdubeLooper=9;
+	Looper looper = new Looper();
+	Looper overdube_looper = new Looper();
 }
