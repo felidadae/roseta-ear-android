@@ -23,10 +23,9 @@ public class MainActivity extends AppCompatActivity implements ISynth {
         setContentView(R.layout.activity_main);
 
         FretboardLayout fretboardLayout = (FretboardLayout) findViewById(R.id.activity_main);
-        fretboardLayout.synthDelegate = (ISynth) this;
+        fretboardLayout.setSynthDelegate((ISynth) this);
 
 		start(441, 256);
-
     }
 
     @Override
