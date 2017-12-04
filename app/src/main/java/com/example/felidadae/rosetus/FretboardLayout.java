@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
+import java.util.HashMap;
 
 
 public class FretboardLayout extends RelativeLayout {
@@ -17,146 +18,83 @@ public class FretboardLayout extends RelativeLayout {
     public FretboardLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
-
-	public void logNote(View view, String event_type) {
-		NoteView noteView = ((NoteView) view);
-		Log.d(
-			"NoteTouchEvent", 
-			String.format("%s of note (%d, %d)", 
-				event_type, noteView.x__, noteView.y__));
-	}
-
-    private void createNote(int x, int y, int ix, int iy) {
-        NoteView note = new NoteView(this.getContext());
-
-		/* Added x,y attributes to note*/
-		note.x__ = ix;
-		note.y__ = iy;
-
-        //note.setBackgroundColor(getResources().getColor(R.color.noteUnactive));
-        note.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent event) {
-                if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-                    fretboard_onclick(view, event);
-					logNote(view, "EVENT_DOWN");
-                }
-                else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-                    fretboard_onclick(view, event);
-					logNote(view, "EVENT_UP");
-                }
-                else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-                    fretboard_onmove(view, event);
-                }
-                return true;
-            };}
-        );
-        RelativeLayout.LayoutParams params =
-            new RelativeLayout.LayoutParams(noteSize, noteSize);
-        params.leftMargin = x;
-        params.topMargin  = y;
-        this.addView(note, params);
-    }
-
-    public void prepareNotes() {
-        int width = this.getWidth();
+    public void createNotes() {
+        int width  = this.getWidth();
         int height = this.getHeight();
 
-        //case on width and height
-
-        //Read from R.dimen
-        noteSize = (int) (S * (int) getResources().getDimension(R.dimen.noteRadius));
+        noteSize     = (int) (S * (int) getResources().getDimension(R.dimen.noteRadius));
         minNoteSpace = (int) (S * (int) getResources().getDimension(R.dimen.minNoteSpace));
-        margin = (int) (S * (int) getResources().getDimension(R.dimen.fretboardMargin));
+        margin       = (int) (S * (int) getResources().getDimension(R.dimen.fretboardMargin));
 
         xN = (int) ((width  - 2 * margin + minNoteSpace) / (noteSize + minNoteSpace));
         yN = (int) ((height - 2 * margin + minNoteSpace) / (noteSize + minNoteSpace));
-        if (xN == 1) {
-            realNoteSpaceX = 0;
-        } else {
-            realNoteSpaceX = ((width - (2 * margin)) - (xN * noteSize)) / (xN - 1);
-        }
-        if (yN == 1) {
-            realNoteSpaceY = 0;
-        } else {
-            realNoteSpaceY = ((height - (2 * margin)) - (yN * noteSize)) / (yN - 1);
-        }
-        Log.i("FretboardLayout", "(xN, yN) <- (" + xN + ", " + yN + ")");
-        Log.i("FretboardLayout", "(width, height) <- (" + width + ", " + height + ")");
-        for (int ix = 0; ix < xN; ix++){
+        if (xN == 1) { realNoteSpaceX = 0; } 
+		else         { realNoteSpaceX = ((width - (2 * margin)) - (xN * noteSize)) / (xN - 1); }
+        if (yN == 1) { realNoteSpaceY = 0; } 
+		else         { realNoteSpaceY = ((height - (2 * margin)) - (yN * noteSize)) / (yN - 1); }
+		logLayout_sizes(xN, yN, width, height);
+        for (int ix = 0; ix < xN; ix++)
             for (int iy = 0; iy < yN; iy++) {
                 int left = (int) (margin + ix * (noteSize + realNoteSpaceX));
-                int top = (int) (margin + iy * (noteSize + realNoteSpaceY));
-                createNote(left, top, ix, yN-1-iy);
-				Log.i(
-					"FretboardLayout", 
-					String.format(
-						"create note with indexes: (x: %d, y: %d)" +
-						"with coordinates (left: %d, top: %d)", 
-						ix, yN-1-iy, left, top));
+                int top  = (int) (margin + iy * (noteSize + realNoteSpaceY));
+                createControler(left, top, ix, yN-1-iy);
+				logLayout_controlerCreation(ix, iy, left, top);
             }
-        }
     }
+    private void createControler(int x, int y, int ix, int iy) {
+		/* factory method to build controller */
+		View viewToAdd;
 
-    public void fretboard_onclick(View view, MotionEvent event) {
-		NoteView noteView = ((NoteView) view);
-	
-		/* Looper stupid code @TODO move */
-		if (noteView.x__ == xLooper && noteView.y__ == yLooper &&
-				event.getAction() == android.view.MotionEvent.ACTION_DOWN) 
-		{
-			looper.toggle_state(Looper.GUIInputType.RECORD);
-			return;
+		ControlerType ctype = specialControlersMap.get(new Coordinates(ix, iy));
+		boolean isSpecialControler = (ctype != null);
+		if (isSpecialControler) {
+			/* here we should have switch on different subgroups of controllers, 
+			 * for now we have only looper */
+			LooperControlerView looperControler = 
+				new LooperControlerView(this.getContext(), this.looper, ix, iy, ctype);
+			switch (ctype) {
+				case LOOPER_RECORD: 
+					looper.setRecordControler(looperControler);
+					break;
+				case LOOPER_OVERDUB:
+					looper.setOverdubControler(looperControler);
+					break;
+				case LOOPER_UNDO:
+					looper.setUndoControler(looperControler);
+					break;
+			}
+			viewToAdd = (View) looperControler;
 		}
-		if (noteView.x__ == xLooper && noteView.y__ == yLooper) { return; }
-		if (noteView.x__ == xOverdubLooper && noteView.y__ == yOverdubLooper &&
-				event.getAction() == android.view.MotionEvent.ACTION_DOWN) 
-		{
-			looper.toggle_state(Looper.GUIInputType.OVERDUB);
-			return;
+		else {
+			viewToAdd = (View) new NoteView(
+					this.getContext(), this.synthDelegate, this.looper, ix, iy);
 		}
-		if (noteView.x__ == xOverdubLooper && noteView.y__ == yOverdubLooper) { return; }
-
-
-        if (!noteView.ifActive) {
-			looper.notify_event(noteView.x__, noteView.y__, LooperEventType.ATTACK);
-            synthDelegate.attackNote(noteView.x__, noteView.y__);
-            noteView.animate_alpha();
-            noteView.ifActive = true;
-			noteView.initial_move_x = (int) event.getX();
-			noteView.initial_move_y = (int) event.getY();
-        }
-        else {
-			looper.notify_event(noteView.x__, noteView.y__, LooperEventType.RELEASE);
-            synthDelegate.releaseNote(noteView.x__, noteView.y__);
-            noteView.animate_alpha();
-            noteView.ifActive = false;
-			synthDelegate.unbendNote(noteView.x__, noteView.y__);
-        }
+        RelativeLayout.LayoutParams params = 
+			new RelativeLayout.LayoutParams(noteSize, noteSize);
+        params.leftMargin = x;
+        params.topMargin  = y;
+        this.addView(viewToAdd, params);
     }
+	private void logLayout(String s) {
+		Log.i("FretboardLayout", s);
+	}
+	private void logLayout_sizes(int xN, int yN, int width, int height) {
+        logLayout("(xN, yN) <- (" + xN + ", " + yN + ")");
+        logLayout("(width, height) <- (" + width + ", " + height + ")");
+	}
+	private void logLayout_controlerCreation(int ix, int iy, int left, int top) {
+		logLayout(String.format(
+			"create controler with indexes: (x: %d, y: %d)" +
+			"with coordinates (left: %d, top: %d)", 
+			ix, yN-1-iy, left, top));
 
-    public void fretboard_onmove(View view, MotionEvent event ) {
-        NoteView noteView = ((NoteView) view);
-		if (noteView.x__ == xLooper && noteView.y__ == yLooper) { return; }
-
-		int newX = Math.round(event.getX());
-		int newY = Math.round(event.getY());
-		int deltaX = (-1) * (noteView.initial_move_x - newX) /7;
-		int deltaY = (-1) * (noteView.initial_move_y - newY) /3;
-
-		int lying_deltaX = deltaX - 10*deltaY;
-        if (noteView.ifActive) {
-            synthDelegate.bendNote(noteView.x__, noteView.y__, deltaX, 0);
-        }
-		logNote(view, String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
-    }
-
+	}
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
-        prepareNotes();
+		chooseSpecialControlersCoordinates();
+        createNotes();
     }
-
 	private float S=1;
 	private int noteSize;
 	private int minNoteSpace;
@@ -165,7 +103,24 @@ public class FretboardLayout extends RelativeLayout {
     private int realNoteSpaceX, realNoteSpaceY;
 
 	private Looper looper;
-	public int xLooper=0, yLooper=8;
-	public int xOverdubLooper=1, yOverdubLooper=8;
-	public int xUndoLooper=2, yUndoLooper=8;
+	private class Coordinates {
+		public int x, y;
+		public Coordinates(int x, int y) { this.x=x; this.y=y; }
+		public boolean equals(Object other) {
+			Coordinates other_ = (Coordinates) other;
+			return this.x == other_.x && this.y == other_.y;
+		}
+		public int hashCode() {
+			return this.x*31 + this.y;
+		}
+	}
+	private void chooseSpecialControlersCoordinates() {
+		this.specialControlersMap.clear(); // clear hashmap
+
+		/* @TODO we should by code choose coordinates for special controlers */
+		this.specialControlersMap.put( new Coordinates(0,8), ControlerType.LOOPER_RECORD);
+		this.specialControlersMap.put( new Coordinates(1,8), ControlerType.LOOPER_OVERDUB);
+		this.specialControlersMap.put( new Coordinates(2,8), ControlerType.LOOPER_UNDO);
+	}
+	private HashMap<Coordinates, ControlerType> specialControlersMap = new HashMap<Coordinates, ControlerType>();
 }

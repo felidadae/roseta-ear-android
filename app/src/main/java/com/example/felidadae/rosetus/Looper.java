@@ -115,19 +115,23 @@ public class Looper {
 	private AtomicLong time_begin_iteration = new AtomicLong();
 	private AtomicLong time_overdub_begin = new AtomicLong();
 	private Semaphore state_changing_logic_semaphore = new Semaphore(1, true);
+
+	private LooperControlerUIInterface recordControler, overdubControler, undoControler; // UI buttons
+	public void setRecordControler(LooperControlerUIInterface recordControler)   { this.recordControler  = recordControler; }
+	public void setOverdubControler(LooperControlerUIInterface overdubControler) { this.overdubControler = overdubControler; }
+	public void setUndoControler(LooperControlerUIInterface undoControler)       { this.undoControler    = undoControler; }
+	
+	private LooperMemory mainMemory    = new LooperMemory();
+	private LooperMemory overdubMemory = new LooperMemory();
+	final private ISynth synthDelegate;
+
 	public Looper(ISynth synthDelegate) {
 		this.synthDelegate = synthDelegate;
 		state.set(State.OFF);
 	}
-
 	private enum State {
 		OFF, RECORD, OVERDUB, PLAYBACK, PLAYBACK_LAST, OVERDUB_NOT_MIXED
 	}
-
-	private LooperMemory mainMemory    = new LooperMemory();
-	private LooperMemory overdubMemory = new LooperMemory();
-
-	final private ISynth synthDelegate;
 
 	private void logLooperGeneric(String s) {
 		Log.d("LooperEvent", String.format(s));
@@ -144,10 +148,7 @@ public class Looper {
 		Log.d("LooperEvent", String.format("Looper will now play from its memory to synthDelegate %s", synthDelegate));
 	}
 	
-	public enum GUIInputType {
-		RECORD, OVERDUB, UNDO, PAUSE
-	}
-	public void toggle_state(GUIInputType input) {
+	public void toggle_state(ControlerType input) {
 		/* Function to change looper state by user input */
 
 		/* (*A*) the state can be also changed from inside play-thread;
@@ -155,7 +156,7 @@ public class Looper {
 		state_changing_logic_semaphore.acquireUninterruptibly();
 
 		/* Button RECORD */
-		if (input == GUIInputType.RECORD) {
+		if (input == ControlerType.LOOPER_RECORD) {
 			if (this.state.get() == State.PLAYBACK) {
 				this.state.set(State.PLAYBACK_LAST);
 			}
@@ -181,7 +182,7 @@ public class Looper {
 			}
 		}
 		/* Button OVERDUBE */
-		else if (input == GUIInputType.OVERDUB) {
+		else if (input == ControlerType.LOOPER_OVERDUB) {
 			if (this.state.get() == State.PLAYBACK) {
 				/* the most obvious functionality; it starts just after touching the button (not waiting for the end of the loop) */
 				this.state.set(State.OVERDUB);
@@ -213,7 +214,7 @@ public class Looper {
 			}
 		}
 		/* Button UNDO */
-		else if (input == GUIInputType.UNDO) {
+		else if (input == ControlerType.LOOPER_UNDO) {
 			;
 		}
 		/* Here is place to add new buttons */
