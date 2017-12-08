@@ -13,7 +13,7 @@ public class FretboardLayout extends RelativeLayout {
     public ISynth synthDelegate;
     public void setSynthDelegate(ISynth synthDelegate) {
         this.synthDelegate = synthDelegate;
-        this.looper = new Looper(synthDelegate);
+        this.looper = new Looper(this.getContext(), synthDelegate);
     }
     public FretboardLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -45,6 +45,7 @@ public class FretboardLayout extends RelativeLayout {
 		/* factory method to build controller */
 		View viewToAdd;
 
+
 		ControlerType ctype = specialControlersMap.get(new Coordinates(ix, iy));
 		boolean isSpecialControler = (ctype != null);
 		if (isSpecialControler) {
@@ -54,13 +55,13 @@ public class FretboardLayout extends RelativeLayout {
 				new LooperControlerView(this.getContext(), this.looper, ix, iy, ctype);
 			switch (ctype) {
 				case LOOPER_RECORD: 
-					looper.setRecordControler(looperControler);
+					looper.setRecordControler((LooperControlerUIInterface) looperControler);
 					break;
 				case LOOPER_OVERDUB:
-					looper.setOverdubControler(looperControler);
+					looper.setOverdubControler((LooperControlerUIInterface) looperControler);
 					break;
 				case LOOPER_UNDO:
-					looper.setUndoControler(looperControler);
+					looper.setUndoControler((LooperControlerUIInterface) looperControler);
 					break;
 			}
 			viewToAdd = (View) looperControler;
@@ -92,6 +93,7 @@ public class FretboardLayout extends RelativeLayout {
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
+        if (this.getChildCount() > 0) { return; }
 		chooseSpecialControlersCoordinates();
         createNotes();
     }
@@ -120,7 +122,7 @@ public class FretboardLayout extends RelativeLayout {
 		/* @TODO we should by code choose coordinates for special controlers */
 		this.specialControlersMap.put( new Coordinates(0,8), ControlerType.LOOPER_RECORD);
 		this.specialControlersMap.put( new Coordinates(1,8), ControlerType.LOOPER_OVERDUB);
-		this.specialControlersMap.put( new Coordinates(2,8), ControlerType.LOOPER_UNDO);
+		/* @TODO add undo button */ // this.specialControlersMap.put( new Coordinates(2,8), ControlerType.LOOPER_UNDO);
 	}
 	private HashMap<Coordinates, ControlerType> specialControlersMap = new HashMap<Coordinates, ControlerType>();
 }

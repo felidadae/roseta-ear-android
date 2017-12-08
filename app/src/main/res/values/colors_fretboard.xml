@@ -6,4 +6,5 @@
     <color name="noteUnactive">#FF4081</color>
     <color name="noteActive">#008000</color>
     <color name="defaultValue">#008000</color>
+    <color name="disabled">#404040</color>
 </resources>

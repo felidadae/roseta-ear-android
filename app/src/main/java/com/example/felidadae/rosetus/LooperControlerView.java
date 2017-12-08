@@ -1,7 +1,9 @@
 package com.example.felidadae.rosetus;
 
+import android.animation.ArgbEvaluator;
 import android.animation.ObjectAnimator;
 import android.content.Context;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
@@ -11,28 +13,35 @@ import android.view.MotionEvent;
 
 
 public class LooperControlerView extends View implements LooperControlerUIInterface {
+	/* contructors */
     public LooperControlerView(Context context, Looper looper, int x, int y, ControlerType controlerType) {
         super(context);
-
 		this.controlerType = controlerType;
 		this.looper = looper;
 		this.x__ = x;
 		this.y__ = y;
-
-        setAlpha(0.0f);
-        this.alpha_active   = 1.0f;
-        this.alhpa_inactive = 0.4f;
+        setAlpha(0.4f);
         initPaint();
-        ifActive = false;
-        this.setAlpha(0.4f);
-    }
+
+		switch (controlerType) {
+			case LOOPER_RECORD: 
+				this.enable(false);
+				break;
+			case LOOPER_OVERDUB:
+				this.disable(false);
+				break;
+			case LOOPER_UNDO:
+				this.disable(false);
+				break;
+		}
+	}
     public LooperControlerView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setAlpha(0.0f);
         initPaint();
-        ifActive = false;
     }
 
+	/* on touch event */
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
@@ -40,11 +49,22 @@ public class LooperControlerView extends View implements LooperControlerUIInterf
 		}
 		return true;
 	}
-	private void logNote(String event_type) {
-		String s = String.format("%s of looper touch type %s (%d, %d)", 
-				event_type, this.controlerType, this.x__, this.y__);
-		Log.d("LooperTouchEvent", s);
+
+	/* LooperControlerUIInterface */
+	public int defaultAnimationLength = 500;
+	public void enable(boolean ifAnimate) {
+	    this.animateColor(Color.WHITE, defaultAnimationLength);
 	}
+	public void disable(boolean ifAnimate) {
+        this.animateColor(Color.DKGRAY, defaultAnimationLength);
+	}
+	public void makeActive(boolean ifAnimate) {
+        this.animateColor(Color.GREEN, defaultAnimationLength);
+	}
+	public void indicateLast(boolean ifAnimate) {
+        this.animateColor(Color.YELLOW, defaultAnimationLength);
+	}
+    public void indicateWaiting(boolean ifAnimate) {;}
 
     private Paint paint;
     private void initPaint() {
@@ -53,51 +73,62 @@ public class LooperControlerView extends View implements LooperControlerUIInterf
         int unactiveColor = getResources().getColor(R.color.defaultValue);
 		switch (this.controlerType) {
             case LOOPER_RECORD:
-				unactiveColor = getResources().getColor(R.color.looperRecord);
+				unactiveColor = getResources().getColor(R.color.looperOverdube);
 				break;
 			case LOOPER_OVERDUB:
 				unactiveColor = getResources().getColor(R.color.looperOverdube);
 				break;
 			case LOOPER_UNDO:
-				unactiveColor = getResources().getColor(R.color.looperUndo);
+				unactiveColor = getResources().getColor(R.color.looperOverdube);
 				break;
 		}
         paint.setColor(unactiveColor);
     }
 
+	/* drawing; animations */
+    public void setColor(int color) {
+        paint.setColor(color);
+        invalidate();
+    }
     @Override
     protected void onDraw(android.graphics.Canvas canvas) {
         RectF rect = new RectF(0, 0, this.getWidth(), this.getWidth());
         canvas.drawRoundRect(rect, this.getWidth(), this.getWidth(), paint);
     }
 
-    public void animate_alpha() {
-        if (!ifActive) {
-            ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", alpha_active);
-            anim.setDuration(500);
-            anim.start();
-        }
-        else {
-            ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", this.alhpa_inactive);
-            anim.setDuration(900); // duration 3 seconds
-            anim.start();
-        }
+
+    /* animations */
+    public void animateColor(int newColor, int length) {
+        final ObjectAnimator backgroundColorAnimator = ObjectAnimator.ofObject(
+                this,
+                "color",
+                new ArgbEvaluator(),
+                paint.getColor(),
+                newColor);
+        backgroundColorAnimator.setDuration(length);
+        backgroundColorAnimator.start();
+    }
+    public void animateAlpha(float newAlpha, int length) {
+        ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", newAlpha);
+        anim.setDuration(length);
+        anim.start();
     }
 
-	/* LooperControlerUIInterface */
-	public void setActive()   {;}
-	public void setUnactive() {;}
-	public void setBeeping()  {;}
-
+	/* properties */
 	private ControlerType controlerType;
-	public ControlerType getControlerType() {
-		return this.controlerType;
-	}
+	public ControlerType getControlerType() { return this.controlerType; }
 	private int x__, y__;
-    private boolean ifActive;
-	public void negateIfActive() {
-		if (!ifActive) { ifActive = true; } else { ifActive = false; }
-	}
-    private float alpha_active, alhpa_inactive;
 	private Looper looper;
+
+	/* Logging */
+	private void logLooperControler(String event_type) {
+		String s = String.format("%s of looper touch type %s (%d, %d)", 
+				event_type, this.controlerType, this.x__, this.y__);
+		Log.d("LooperTouchEvent", s);
+	}
+	private void logLooperControler_alpha() {
+		String s = String.format("Alpha of looper controler type %s is %f", 
+				this.controlerType, this.getAlpha());
+		Log.d("LooperTouchEvent", s);
+	}
 }

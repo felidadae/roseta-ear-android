@@ -19,7 +19,6 @@ public class NoteView extends View {
 		this.x__ = x;
 		this.y__ = y;
 
-        setAlpha(0.0f);
         this.alpha_active  = 1.0f;
         this.alhpa_inactive= 0.4f;
         Log.i("NoteView", "(alpha_active, alpha_inactive) <- (" + alpha_active + ", " + alhpa_inactive + ")");
@@ -61,13 +60,14 @@ public class NoteView extends View {
 
 		int lying_deltaX = deltaX - 10*deltaY;
         if (this.ifActive) {
+            looper.notifyEvent(this.x__, this.y__, LooperEventType.BEND, deltaX, 0);
             synthDelegate.bendNote(this.x__, this.y__, deltaX, 0);
         }
 		logNote(String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
     }
     public void onClick_handler(MotionEvent event) {
         if (!this.ifActive) {
-			looper.notify_event(this.x__, this.y__, LooperEventType.ATTACK);
+			looper.notifyEvent(this.x__, this.y__, LooperEventType.ATTACK);
             synthDelegate.attackNote(this.x__, this.y__);
             this.animate_alpha();
             this.ifActive = true;
@@ -75,11 +75,12 @@ public class NoteView extends View {
 			this.initial_move_y = (int) event.getY();
         }
         else {
-			looper.notify_event(this.x__, this.y__, LooperEventType.RELEASE);
+			looper.notifyEvent(this.x__, this.y__, LooperEventType.RELEASE);
             synthDelegate.releaseNote(this.x__, this.y__);
             this.animate_alpha();
             this.ifActive = false;
 			synthDelegate.unbendNote(this.x__, this.y__);
+			looper.notifyEvent(this.x__, this.y__, LooperEventType.UNBEND);
         }
     }
 
@@ -88,7 +89,7 @@ public class NoteView extends View {
     private void initPaint() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setAntiAlias(true);
-        int unactiveColor=getResources().getColor(R.color.noteUnactive);
+        int unactiveColor = getResources().getColor(R.color.noteUnactive);
         paint.setColor(unactiveColor);
     }
 

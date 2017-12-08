@@ -8,3 +8,7 @@ function logs {
 	adb logcat -c
 	adb logcat -s LooperEvent
 }
+function logs_2 {
+	adb logcat -c
+	adb logcat -s LooperTouchEvent
+}

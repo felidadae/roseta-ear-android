@@ -4,6 +4,8 @@
 package com.example.felidadae.rosetus;
 
 
+import android.content.Context;
+import android.os.Handler;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ class LooperMemoryItem {
 	/* Looper event info */
 	public LooperEventType event_type; //ATTACK, REALEASE, BREAK etc..
 	public int x,y;
+	public float xBending, yBending; /* overdub */  
 
 	/* in miliseconds; time 0 is the time of first event in memory; property of memory */
 	public long normalized_time_event; 
@@ -32,8 +35,8 @@ class LooperMemoryItem {
 	public LooperMemoryItem() {}
 	public LooperMemoryItem(LooperMemoryItem other) {
 		this.event_type = other.event_type;
-		this.x = other.x;
-		this.y = other.y;
+		this.x = other.x; this.y = other.y;
+		this.xBending = other.xBending; this.yBending = other.yBending;
 		this.normalized_time_event = other.normalized_time_event;
 		this.delta_time_from_previous_event = other.delta_time_from_previous_event;
 		this.iteration_creation = other.iteration_creation;
@@ -49,7 +52,7 @@ class LooperMemoryItem {
 /* private class; used only in this file */
 class LooperMemory {
 	/* if to be clear; */
-	AtomicBoolean is_to_be_clear = new AtomicBoolean(false);
+	public AtomicBoolean is_to_be_clear = new AtomicBoolean(false);
 
 	/* list of events; memory of the looper;  */
 	public List<LooperMemoryItem> memory = new ArrayList<LooperMemoryItem>();
@@ -68,7 +71,10 @@ class LooperMemory {
 	}
 
 	/* add new event to looper memory */
-	public void add(int x, int y, LooperEventType event_type, long begin) {
+	public void add(int x, int y, LooperEventType event_type, long begin) { 
+		this.add(x,y, event_type, begin, 0.0f, 0.0f);
+	}
+	public void add(int x, int y, LooperEventType event_type, long begin, float xBending, float yBending) {
 		if (is_to_be_clear.get()) {
 			this.clear();
 			is_to_be_clear.set(false);
@@ -76,6 +82,7 @@ class LooperMemory {
 
 		LooperMemoryItem item = new LooperMemoryItem();
 		item.x = x; item.y = y; item.event_type = event_type;
+		item.xBending = xBending; item.yBending = yBending;
 		Long absolute_time_event = System.currentTimeMillis();
 
 		if (memory.size() == 0) {
@@ -98,6 +105,11 @@ class LooperMemory {
 		this.L += item.delta_time_from_previous_event;
 	}
 
+	public void add(LooperMemoryItem memoryItem) {
+		this.L += memoryItem.delta_time_from_previous_event;
+		this.memory.add(memoryItem);
+	}
+
 	@Override
 	public String toString() {
 		String result = new String("");
@@ -111,6 +123,7 @@ class LooperMemory {
 
 
 public class Looper {
+    public Context context;
 	private AtomicReference<State> state = new AtomicReference<State>();
 	private AtomicLong time_begin_iteration = new AtomicLong();
 	private AtomicLong time_overdub_begin = new AtomicLong();
@@ -125,9 +138,10 @@ public class Looper {
 	private LooperMemory overdubMemory = new LooperMemory();
 	final private ISynth synthDelegate;
 
-	public Looper(ISynth synthDelegate) {
+	public Looper(Context context, ISynth synthDelegate) {
 		this.synthDelegate = synthDelegate;
 		state.set(State.OFF);
+		this.context = context;
 	}
 	private enum State {
 		OFF, RECORD, OVERDUB, PLAYBACK, PLAYBACK_LAST, OVERDUB_NOT_MIXED
@@ -159,6 +173,9 @@ public class Looper {
 		if (input == ControlerType.LOOPER_RECORD) {
 			if (this.state.get() == State.PLAYBACK) {
 				this.state.set(State.PLAYBACK_LAST);
+				this.recordControler.disable(true);
+                this.overdubControler.disable(true);
+                /* @TODO */ //this.undoControler.disable(true);
 			}
 			else if (this.state.get() == State.RECORD) {
 				//add break after last note and clicking looper button
@@ -166,10 +183,13 @@ public class Looper {
 
 				/* Lets start playing the loop */
 				this.state.set(State.PLAYBACK);
+                this.recordControler.enable(true);
+				this.overdubControler.enable(true);
 				this.play();
 			}
 			else if (this.state.get() == State.OFF) {
 				this.state.set(State.RECORD);
+				this.recordControler.makeActive(true);
 			}
 			else if (this.state.get() == State.PLAYBACK_LAST) {
 				; /* do nothing - maybe it should start recording after end of playback ? */
@@ -185,9 +205,13 @@ public class Looper {
 		else if (input == ControlerType.LOOPER_OVERDUB) {
 			if (this.state.get() == State.PLAYBACK) {
 				/* the most obvious functionality; it starts just after touching the button (not waiting for the end of the loop) */
+				this.overdubMemory.clear();
 				this.state.set(State.OVERDUB);
 				this.time_overdub_begin.set(this.time_begin_iteration.get());
 				this.overdubMemory.add(0,0, LooperEventType.PAUSE, this.time_overdub_begin.get());
+				this.recordControler.disable(true);
+				/* undo recorder @TODO */  //this.undoControler.disable(true);
+				this.overdubControler.makeActive(true);
 			}
 			else if (this.state.get() == State.OVERDUB) {
 				/* stop overdube, mix and wait for the end of the current loop to replace mainMemory with overdubMemory */
@@ -197,8 +221,9 @@ public class Looper {
 
 				//mix overdube and main memory and save to overdube var reference;
 				//later in play-thread it will be switched on the begin of loop;
-				mix_memories();
+				mixMemories();
 				this.state.set(State.OVERDUB_NOT_MIXED);
+                this.overdubControler.disable(true);
 			}
 			else if (this.state.get() == State.RECORD) {
 				; /* we should just in that moment finish the loop and start overdubing (and playing ofc the loop in the background) */
@@ -225,9 +250,9 @@ public class Looper {
 	}
 	public void play() {
 		logLooper_play();
+		final Looper looper__ = this;
 		new Thread(new Runnable() {
 			public void run() {
-
                 state_changing_logic_semaphore.acquireUninterruptibly(); /* ACQUIRE SEMAPHORE */
 				State state_ = state.get();
 				while (state_ == State.PLAYBACK || state_ == State.OVERDUB || state_ == State.OVERDUB_NOT_MIXED) {
@@ -238,6 +263,19 @@ public class Looper {
 						overdubMemory = tmp;
 						overdubMemory.is_to_be_clear.set(true);
 						state.set(State.PLAYBACK);
+
+						/* post to main thread - as animations can be only done from main thread */
+                        /* https://stackoverflow.com/questions/11123621/running-code-in-main-thread-from-another-thread */
+                        Handler mainHandler = new Handler(context.getMainLooper());
+                        Runnable myRunnable = new Runnable() {
+                            @Override
+                            public void run() {
+                                looper__.recordControler.enable(true);
+                                looper__.overdubControler.enable(true);
+                                /* @TODO undo controller */ //looper__.undoControler.enable(true);
+                            }
+                        };
+                        mainHandler.post(myRunnable);
 					}
 					state_changing_logic_semaphore.release(); /* RELEASE SEMAPHORE */
 
@@ -251,6 +289,13 @@ public class Looper {
 						else if (memoryItem.event_type == LooperEventType.RELEASE) {
 							synthDelegate.releaseNote(memoryItem.x, memoryItem.y);
 						}
+                        else if (memoryItem.event_type == LooperEventType.BEND) {
+							synthDelegate.bendNote( memoryItem.x, memoryItem.y, 
+								memoryItem.xBending, memoryItem.yBending);
+						}
+                        else if (memoryItem.event_type == LooperEventType.UNBEND) {
+							synthDelegate.unbendNote(memoryItem.x, memoryItem.y);
+                        }
 					}
 
                     state_changing_logic_semaphore.acquireUninterruptibly(); /* ACQUIRE SEMAPHORE */
@@ -258,21 +303,34 @@ public class Looper {
 				}
                 if (state_ == State.PLAYBACK_LAST) {
                     state.set(State.OFF);
+
+                    /* post to main thread - as animations can be only done from main thread */
+                    /* https://stackoverflow.com/questions/11123621/running-code-in-main-thread-from-another-thread */
+                    Handler mainHandler = new Handler(context.getMainLooper());
+                    Runnable myRunnable = new Runnable() {
+                        @Override
+                        public void run() {looper__.recordControler.enable(true);}
+                    };
+                    mainHandler.post(myRunnable);
                 }
                 mainMemory.clear();
+				overdubMemory.clear();
                 state_changing_logic_semaphore.release(); /* RELEASE SEMAPHORE */
 			}
 		}).start();
 	}
-	public void notify_event(int x, int y, LooperEventType event_type) {
+	public void notifyEvent(int x, int y, LooperEventType event_type) {
+		notifyEvent(x,y,event_type,0.0f,0.0f);
+	}
+	public void notifyEvent(int x, int y, LooperEventType event_type, float xBending, float yBending) {
 		if (this.state.get() == State.RECORD) {
-			mainMemory.add(x,y,event_type, -1);
+			mainMemory.add(x,y,event_type, -1, xBending, yBending);
 		}
 		else if (this.state.get() == State.OVERDUB) {
-			overdubMemory.add(x,y,event_type, this.time_overdub_begin.get());
+			overdubMemory.add(x,y,event_type, this.time_overdub_begin.get(), xBending, yBending);
 		}
 	}
-	private void add_from_main(int i, int ik, int K, long L, int N, LooperMemory m, LooperMemory r) {
+	private void addFromMain(int i, int ik, int K, long L, int N, LooperMemory m, LooperMemory r) {
 		LooperMemoryItem cp = new LooperMemoryItem(m.memory.get(i%N));
 		cp.normalized_time_event = cp.normalized_time_event + ik*L;
 		if (r.memory.size() > 0) {
@@ -281,9 +339,9 @@ public class Looper {
 			cp.delta_time_from_previous_event = 0;
 		}
 		// cp.iteration = -1; // @TODO
-		r.memory.add(cp);
+		r.add(cp);
 	}
-	private void add_from_overdube(int i_, LooperMemory m_, LooperMemory r) {
+	private void addFromOverdube(int i_, LooperMemory m_, LooperMemory r) {
 		LooperMemoryItem cp = new LooperMemoryItem(m_.memory.get(i_));
 		if (r.memory.size() > 0) {
 			cp.delta_time_from_previous_event = cp.normalized_time_event - r.memory.get(r.memory.size()-1).normalized_time_event;
@@ -291,9 +349,9 @@ public class Looper {
 			cp.delta_time_from_previous_event = 0;
 		}
 		// cp.iteration = -1; // @TODO
-		r.memory.add(cp);
+		r.add(cp);
 	}
-	private void mix_memories() { 
+	private void mixMemories() {
 		logLooperGeneric("Just started to mix memories.");
 		LooperMemory m  = this.mainMemory;
 		LooperMemory m_ = this.overdubMemory;
@@ -302,25 +360,26 @@ public class Looper {
 		long L  = this.mainMemory.getL();
 		long L_ = this.overdubMemory.getL();
 		int K = (int)(Math.ceil((double)L_/(double)L));
+		logLooperGeneric(String.format("N <- %d, N_ <- %d, L <- %d, L_ <- %d, K <- %d", N, N_, L, L_, K));
 		LooperMemory r = new LooperMemory();
 
 		int i_ = 0, i = 0;
 		while (!(i_ == N_ && i == N*K)) {
 			int ik = (int) i/N;
 			if (i_ == N_) {
-				add_from_main(i, ik, K, L, N, m, r);
+				addFromMain(i, ik, K, L, N, m, r);
 				i++;
 			}
 			else if (i == N*K) {
-				add_from_overdube(i_, m_, r);
+				addFromOverdube(i_, m_, r);
 				i_++;
 			}
 			else if ((m.memory.get(i%N).normalized_time_event + ik*L) < m_.memory.get(i_).normalized_time_event) {
-				add_from_main(i, ik, K, L, N, m, r);
+				addFromMain(i, ik, K, L, N, m, r);
 				i++;
 			}
 			else {
-				add_from_overdube(i_, m_, r);
+				addFromOverdube(i_, m_, r);
 				i_++;
 			}
 		}
