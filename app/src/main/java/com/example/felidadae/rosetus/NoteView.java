@@ -14,10 +14,10 @@ public class NoteView extends View {
     public NoteView(Context context, ISynth synthDelegate, Looper looper, int x, int y) {
         super(context);
 
-		this.looper = looper;
-		this.synthDelegate = synthDelegate;
-		this.x__ = x;
-		this.y__ = y;
+        this.looper = looper;
+        this.synthDelegate = synthDelegate;
+        this.x__ = x;
+        this.y__ = y;
 
         this.alpha_active  = 1.0f;
         this.alhpa_inactive= 0.4f;
@@ -34,53 +34,53 @@ public class NoteView extends View {
     }
 
 
-	@Override
-	public boolean onTouchEvent(MotionEvent event) {
-		if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-			onClick_handler(event);
-			logNote("EVENT_DOWN");
-		}
-		else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-			onClick_handler(event);
-			logNote("EVENT_UP");
-		}
-		else if (event.getAction() == android.view.MotionEvent.ACTION_MOVE) {
-			onMove_handler(event);
-		}
-		return true;
-	}
-	private void logNote(String event_type) {
-		Log.d("NoteTouchEvent", String.format("%s of note (%d, %d)", event_type, this.x__, this.y__));
-	}
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+            onClick_handler(event);
+            logNote("EVENT_DOWN");
+        }
+        else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
+            onClick_handler(event);
+            logNote("EVENT_UP");
+        }
+        else if (event.getAction() == android.view.MotionEvent.ACTION_MOVE) {
+            onMove_handler(event);
+        }
+        return true;
+    }
+    private void logNote(String event_type) {
+        Log.d("NoteTouchEvent", String.format("%s of note (%d, %d)", event_type, this.x__, this.y__));
+    }
     public void onMove_handler(MotionEvent event ) {
-		int newX = Math.round(event.getX());
-		int newY = Math.round(event.getY());
-		int deltaX = (-1) * (this.initial_move_x - newX) /7;
-		int deltaY = (-1) * (this.initial_move_y - newY) /3;
+        int newX = Math.round(event.getX());
+        int newY = Math.round(event.getY());
+        int deltaX = (-1) * (this.initial_move_x - newX) /7;
+        int deltaY = (-1) * (this.initial_move_y - newY) /3;
 
-		int lying_deltaX = deltaX - 10*deltaY;
+        int lying_deltaX = deltaX - 10*deltaY;
         if (this.ifActive) {
             looper.notifyEvent(this.x__, this.y__, LooperEventType.BEND, deltaX, 0);
             synthDelegate.bendNote(this.x__, this.y__, deltaX, 0);
         }
-		logNote(String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
+        logNote(String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
     }
     public void onClick_handler(MotionEvent event) {
         if (!this.ifActive) {
-			looper.notifyEvent(this.x__, this.y__, LooperEventType.ATTACK);
+            looper.notifyEvent(this.x__, this.y__, LooperEventType.ATTACK);
             synthDelegate.attackNote(this.x__, this.y__);
             this.animate_alpha();
             this.ifActive = true;
-			this.initial_move_x = (int) event.getX();
-			this.initial_move_y = (int) event.getY();
+            this.initial_move_x = (int) event.getX();
+            this.initial_move_y = (int) event.getY();
         }
         else {
-			looper.notifyEvent(this.x__, this.y__, LooperEventType.RELEASE);
+            looper.notifyEvent(this.x__, this.y__, LooperEventType.RELEASE);
             synthDelegate.releaseNote(this.x__, this.y__);
             this.animate_alpha();
             this.ifActive = false;
-			synthDelegate.unbendNote(this.x__, this.y__);
-			looper.notifyEvent(this.x__, this.y__, LooperEventType.UNBEND);
+            synthDelegate.unbendNote(this.x__, this.y__);
+            looper.notifyEvent(this.x__, this.y__, LooperEventType.UNBEND);
         }
     }
 
@@ -112,11 +112,11 @@ public class NoteView extends View {
         }
     }
 
-	private int x__,y__;
+    private int x__,y__;
     private boolean ifActive;
-	private int initial_move_x, initial_move_y;
+    private int initial_move_x, initial_move_y;
     private float alpha_active, alhpa_inactive;
-	private ISynth synthDelegate;
-	private Looper looper;
+    private ISynth synthDelegate;
+    private Looper looper;
 
 }
