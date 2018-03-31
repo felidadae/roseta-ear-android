@@ -99,6 +99,7 @@ public class FretboardLayout extends RelativeLayout {
         if (this.getChildCount() > 0) { return; }
         createNotes();
     }
+
     private float S=1;
     private int noteSize;
     private int minNoteSpace;

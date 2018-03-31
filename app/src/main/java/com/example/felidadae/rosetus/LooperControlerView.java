@@ -70,6 +70,10 @@ public class LooperControlerView extends View implements LooperControlerUIInterf
     private void initPaint() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setAntiAlias(true);
+
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(3);
+
         int unactiveColor = getResources().getColor(R.color.defaultValue);
         switch (this.controlerType) {
             case LOOPER_RECORD:
@@ -92,7 +96,7 @@ public class LooperControlerView extends View implements LooperControlerUIInterf
     }
     @Override
     protected void onDraw(android.graphics.Canvas canvas) {
-        RectF rect = new RectF(0, 0, this.getWidth(), this.getWidth());
+        RectF rect = new RectF(2, 2, this.getWidth()-4, this.getWidth()-4);
         canvas.drawRoundRect(rect, this.getWidth(), this.getWidth(), paint);
     }
 

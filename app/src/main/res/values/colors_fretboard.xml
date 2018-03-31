@@ -3,7 +3,7 @@
     <color name="looperRecord">#00bfff</color>
     <color name="looperOverdube">#0080ff</color>
     <color name="looperUndo">#0040ff</color>
-    <color name="noteUnactive">#FF4081</color>
+    <color name="noteUnactive">#B58016</color>
     <color name="noteActive">#008000</color>
     <color name="defaultValue">#008000</color>
     <color name="disabled">#404040</color>
