@@ -39,6 +39,9 @@ public class MainActivity extends Activity implements ISynth {
         FretboardLayout fretboardLayout = (FretboardLayout) findViewById(R.id.activity_main);
         fretboardLayout.setSynthDelegate((ISynth) this);
 
+        this.looper = new Looper(fretboardLayout.getContext(), this, fretboardLayout);
+        fretboardLayout.looper = this.looper;
+
         start(441, 256);
     }
 
@@ -51,4 +54,6 @@ public class MainActivity extends Activity implements ISynth {
     protected void onStop() {
         super.onStop();
     }
+
+    private Looper looper;
 }

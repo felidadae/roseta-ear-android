@@ -20,7 +20,7 @@ import java.util.concurrent.Semaphore;
 class LooperMemoryItem {
     /* Looper event info */
     public LooperEventType event_type; //ATTACK, REALEASE, BREAK etc..
-    public int x,y;
+    public int x,y; /* position */
     public float xBending, yBending; /* overdub */  
 
     /* in miliseconds; time 0 is the time of first event in memory; property of memory */
@@ -137,9 +137,11 @@ public class Looper {
     private LooperMemory mainMemory    = new LooperMemory();
     private LooperMemory overdubMemory = new LooperMemory();
     final private ISynth synthDelegate;
+    final private LooperUIDelegate uiDelegate;
 
-    public Looper(Context context, ISynth synthDelegate) {
+    public Looper(Context context, ISynth synthDelegate, LooperUIDelegate uiDelegate) {
         this.synthDelegate = synthDelegate;
+        this.uiDelegate = uiDelegate;
         state.set(State.OFF);
         this.context = context;
     }
@@ -285,9 +287,33 @@ public class Looper {
                         catch (InterruptedException e) {;}
                         if (memoryItem.event_type == LooperEventType.ATTACK) {
                             synthDelegate.attackNote(memoryItem.x, memoryItem.y);
+
+                            /* as well inform apprioprate notes to animate */
+                            final LooperMemoryItem mem___ = new LooperMemoryItem(memoryItem);
+                            Handler mainHandler = new Handler(context.getMainLooper());
+                            Runnable myRunnable = new Runnable() {
+                                @Override
+                                public void run() {
+                                    uiDelegate.attackNote(mem___.x, mem___.y);
+                                }
+                            };
+                            mainHandler.post(myRunnable);
+
                         }
                         else if (memoryItem.event_type == LooperEventType.RELEASE) {
                             synthDelegate.releaseNote(memoryItem.x, memoryItem.y);
+
+                            /* as well inform apprioprate notes to animate */
+                            final LooperMemoryItem mem___ = new LooperMemoryItem(memoryItem);
+                            Handler mainHandler = new Handler(context.getMainLooper());
+                            Runnable myRunnable = new Runnable() {
+                                @Override
+                                public void run() {
+                                    uiDelegate.releaseNote(mem___.x, mem___.y);
+                                }
+                            };
+                            mainHandler.post(myRunnable);
+
                         }
                         else if (memoryItem.event_type == LooperEventType.BEND) {
                             synthDelegate.bendNote( memoryItem.x, memoryItem.y, 

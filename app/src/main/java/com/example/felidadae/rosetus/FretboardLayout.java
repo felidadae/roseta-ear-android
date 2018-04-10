@@ -3,18 +3,17 @@ package com.example.felidadae.rosetus;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
 import java.util.HashMap;
 
 
-public class FretboardLayout extends RelativeLayout {
+public class FretboardLayout extends RelativeLayout implements LooperUIDelegate {
     public ISynth synthDelegate;
     public void setSynthDelegate(ISynth synthDelegate) {
         this.synthDelegate = synthDelegate;
-        this.looper = new Looper(this.getContext(), synthDelegate);
     }
+    public Looper looper;
     public FretboardLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
@@ -40,14 +39,15 @@ public class FretboardLayout extends RelativeLayout {
             for (int iy = 0; iy < yN; iy++) {
                 int left = (int) (margin + ix * (noteSize + realNoteSpaceX));
                 int top  = (int) (margin + iy * (noteSize + realNoteSpaceY));
-                createControler(left, top, ix, yN-1-iy);
+                View controler = createControler(left, top, ix, yN-1-iy);
+
+                this.notesMap.put( new Coordinates(ix,yN-1-iy), controler);
                 logLayout_controlerCreation(ix, iy, left, top);
             }
     }
-    private void createControler(int x, int y, int ix, int iy) {
+    private View createControler(int x, int y, int ix, int iy) {
         /* factory method to build controller */
         View viewToAdd;
-
 
         ControlerType ctype = specialControlersMap.get(new Coordinates(ix, iy));
         boolean isSpecialControler = (ctype != null);
@@ -78,6 +78,10 @@ public class FretboardLayout extends RelativeLayout {
         params.leftMargin = x;
         params.topMargin  = y;
         this.addView(viewToAdd, params);
+        return viewToAdd;
+    }
+    public View getViewAtCoordinate(Coordinates coordinates) {
+        return notesMap.get(coordinates);
     }
     private void logLayout(String s) {
         Log.i("FretboardLayout", s);
@@ -107,7 +111,7 @@ public class FretboardLayout extends RelativeLayout {
     private int xN, yN;
     private int realNoteSpaceX, realNoteSpaceY;
 
-    private Looper looper;
+
     private class Coordinates {
         public int x, y;
         public Coordinates(int x, int y) { this.x=x; this.y=y; }
@@ -128,4 +132,16 @@ public class FretboardLayout extends RelativeLayout {
         /* @TODO add undo button */ // this.specialControlersMap.put( new Coordinates(2,8), ControlerType.LOOPER_UNDO);
     }
     private HashMap<Coordinates, ControlerType> specialControlersMap = new HashMap<Coordinates, ControlerType>();
+    private HashMap<Coordinates, View> notesMap = new HashMap<Coordinates, View>();
+
+    @Override
+    public void attackNote(int positionX, int positionY) {
+        NoteView note = (NoteView) this.getViewAtCoordinate(new Coordinates(positionX, positionY));
+        note.onClick_handler(0,0); /* probably shoudn't be 0,0 */
+    }
+    @Override
+    public void releaseNote(int positionX, int positionY) {
+        NoteView note = (NoteView) this.getViewAtCoordinate(new Coordinates(positionX, positionY));
+        note.onClick_handler(0,0); /* probably shoudn't be 0,0 */
+    }
 }

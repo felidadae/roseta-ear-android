@@ -18,7 +18,6 @@ public class NoteView extends View {
         this.colorInactive = getResources().getColor(R.color.noteUnactive);
         this.colorActive   = getResources().getColor(R.color.noteActive);
     }
-
     public NoteView(Context context, ISynth synthDelegate, Looper looper, int x, int y) {
         super(context);
 
@@ -40,15 +39,14 @@ public class NoteView extends View {
         ifActive = false;
     }
 
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-            onClick_handler(event);
+            onClick_handler((int) event.getX(), (int) event.getY());
             logNote("EVENT_DOWN");
         }
         else if (event.getAction() == android.view.MotionEvent.ACTION_UP) {
-            onClick_handler(event);
+            onClick_handler((int) event.getX(), (int) event.getY());
             logNote("EVENT_UP");
         }
         else if (event.getAction() == android.view.MotionEvent.ACTION_MOVE) {
@@ -75,7 +73,7 @@ public class NoteView extends View {
         }
         logNote(String.format("EVENT_MOVE with value (%d, %d)", deltaX, deltaY));
     }
-    public void onClick_handler(MotionEvent event) {
+    public void onClick_handler(int initialMovePosX, int initialMovePosY) {
         if (!this.ifActive) {
             looper.notifyEvent(this.x__, this.y__, LooperEventType.ATTACK);
             synthDelegate.attackNote(this.x__, this.y__);
@@ -83,8 +81,8 @@ public class NoteView extends View {
             //this.animate_color();
             this.animate_size();
             this.ifActive = true;
-            this.initialMoveX = (int) event.getX();
-            this.initialMoveY = (int) event.getY();
+            this.initialMoveX = initialMovePosX;
+            this.initialMoveY = initialMovePosY;
         }
         else {
             looper.notifyEvent(this.x__, this.y__, LooperEventType.RELEASE);
@@ -98,30 +96,23 @@ public class NoteView extends View {
         }
     }
 
-
     private Paint paint;
     private void initPaint() {
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setAntiAlias(true);
-
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(3);
-
-        // paint.setPathEffect(new DashPathEffect(new float[] {80,30}, 0));
         paint.setColor(colorInactive);
     }
-
     public void setColor(int color) {
         this.currentColor = color;
         paint.setColor(color);
         invalidate();
     }
-
     public void setDeltaRadius(int deltaRadius) {
         this.deltaRadius = deltaRadius;
         invalidate();
     }
-
     @Override
     protected void onDraw(android.graphics.Canvas canvas) {
         /* @TODO do not allocate here data */
@@ -133,49 +124,56 @@ public class NoteView extends View {
         canvas.drawRoundRect(rect, this.getWidth(), this.getWidth(), paint);
     }
 
+    private ObjectAnimator ina2_, outa2_;
     void animate_alpha(){
         if (!ifActive) {
-            ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", alphaActive);
-            anim.setDuration(500);
-            anim.start();
+            if (this.outa2_ != null) {this.outa2_.cancel();}
+            ina2_ = ObjectAnimator.ofFloat(this, "alpha", alphaActive);
+            ina2_.setDuration(500);
+            ina2_.start();
         }
         else {
-            ObjectAnimator anim = ObjectAnimator.ofFloat(this, "alpha", this.alphaInactive);
-            anim.setDuration(900); // duration 3 seconds
-            anim.start();
+            if (this.ina2_ != null) {this.ina2_.cancel();}
+            outa2_ = ObjectAnimator.ofFloat(this, "alpha", this.alphaInactive);
+            outa2_.setDuration(900); // duration 3 seconds
+            outa2_.start();
         }
     }
-
+    private ObjectAnimator ina3_, outa3_;
     void animate_color() {
         if (!ifActive) {
+            if (outa3_ != null) {outa3_.cancel();}
             ArgbEvaluator evaluator = new ArgbEvaluator();
-            ObjectAnimator animator = ObjectAnimator.ofObject(
+            ina3_ = ObjectAnimator.ofObject(
                     this, "color", evaluator,
                     currentColor, colorActive);
-            animator.setDuration(500).start();
+            ina3_.setDuration(500).start();
         }
         else {
             ArgbEvaluator evaluator = new ArgbEvaluator();
-            ObjectAnimator animator = ObjectAnimator.ofObject(
+            if (ina3_!= null) {ina3_.cancel();}
+            outa3_ = ObjectAnimator.ofObject(
                     this, "color", evaluator,
                     currentColor, colorInactive);
-            animator.setDuration(900).start();
+            outa3_.setDuration(200).start();
         }
     }
-
+    private ObjectAnimator ina_, outa_;
     void animate_size() {
         if (!ifActive) {
-            ObjectAnimator anim = ObjectAnimator.ofInt(this, "deltaRadius", 0, 10);
-            anim.setDuration(200);
-            anim.start();
+            if (outa_ != null) {outa_.cancel();}
+            ina_ = ObjectAnimator.ofInt(this, "deltaRadius", this.deltaRadius, 10);
+            ina_.setDuration(200);
+            ina_.start();
         } else {
-            ObjectAnimator anim = ObjectAnimator.ofInt(this, "deltaRadius", 10,0);
-            anim.setDuration(900);
-            anim.start();
+            if (ina_ != null) {ina_.cancel();}
+            outa_ = ObjectAnimator.ofInt(this, "deltaRadius", this.deltaRadius,0);
+            outa_.setDuration(900);
+            outa_.start();
         }
     }
 
-    private int x__,y__;
+    private int x__, y__;
     private int deltaRadius = 0;
     private boolean ifActive;
     private int initialMoveX, initialMoveY;
@@ -184,5 +182,4 @@ public class NoteView extends View {
     private int colorActive, colorInactive;
     private ISynth synthDelegate;
     private Looper looper;
-
 }
