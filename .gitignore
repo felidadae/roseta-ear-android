@@ -22,6 +22,4 @@ Session.vim
 # auto-generated tag files
 tags
 
-app/src/main/cpp/*
-!app/src/main/cpp/update_rosetus_synth.sh
 rosetus.todo
