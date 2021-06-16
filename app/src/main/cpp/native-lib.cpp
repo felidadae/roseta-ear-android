@@ -76,6 +76,14 @@ Java_com_example_felidadae_rosetus_MainActivity_unbendNote(
 	synth.unbendNote(positionX, positionY);
 }
 
+extern "C"
+void
+Java_com_example_felidadae_rosetus_MainActivity_readNoteAmplitude(
+        JNIEnv *env,
+        jobject /* this */, jint positionX, jint positionY) 
+{
+	synth.readNoteAmplitude(positionX, positionY);
+}
 
 // engine interfaces
 static SLObjectItf engineObject = NULL;

@@ -79,7 +79,7 @@ public class NoteView extends View {
             synthDelegate.attackNote(this.x__, this.y__);
             this.animate_alpha();
             //this.animate_color();
-            this.animate_size();
+            // this.animate_size();
             this.ifActive = true;
             this.initialMoveX = initialMovePosX;
             this.initialMoveY = initialMovePosY;
@@ -89,7 +89,7 @@ public class NoteView extends View {
             synthDelegate.releaseNote(this.x__, this.y__);
             this.animate_alpha();
             this.animate_color();
-            this.animate_size();
+            // this.animate_size();
             this.ifActive = false;
             synthDelegate.unbendNote(this.x__, this.y__);
             looper.notifyEvent(this.x__, this.y__, LooperEventType.UNBEND);
@@ -115,6 +115,7 @@ public class NoteView extends View {
     }
     @Override
     protected void onDraw(android.graphics.Canvas canvas) {
+        // this.setDeltaRadius((int) (30.0f*synthDelegate.readNoteAmplitude(this.x__, this.y__)));
         /* @TODO do not allocate here data */
         RectF rect = new RectF(
                 2+deltaRadius,
@@ -163,7 +164,7 @@ public class NoteView extends View {
         if (!ifActive) {
             if (outa_ != null) {outa_.cancel();}
             ina_ = ObjectAnimator.ofInt(this, "deltaRadius", this.deltaRadius, 10);
-            ina_.setDuration(200);
+            ina_.setDuration(100);
             ina_.start();
         } else {
             if (ina_ != null) {ina_.cancel();}

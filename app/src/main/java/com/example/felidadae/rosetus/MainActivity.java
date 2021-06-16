@@ -18,6 +18,7 @@ public class MainActivity extends Activity implements ISynth {
     public native void releaseNote(int positionX, int positionY);
     public native void bendNote(int positionX, int positionY, float bendingIndexX, float bendingIndexY);
     public native void unbendNote(int positionX, int positionY);
+    public native double readNoteAmplitude(int positionX, int positionY);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

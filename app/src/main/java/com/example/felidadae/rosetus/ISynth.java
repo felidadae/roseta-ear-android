@@ -8,4 +8,5 @@ public interface ISynth {
 
     public void bendNote(int positionX, int positionY, float bendingIndexX, float bendingIndexY);
     public void unbendNote(int positionX, int positionY);
+    public double readNoteAmplitude(int positionX, int positionY);
 }
